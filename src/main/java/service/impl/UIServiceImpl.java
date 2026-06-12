@@ -15,13 +15,22 @@ public class UIServiceImpl implements UIService {
     private final OrderService orderService;
     private final UserService userService;
     private final BookService bookService;
+    private final OrderViewService orderViewService;
     private final InputService inputService;
     private final OutputService outputService;
 
-    public UIServiceImpl(OrderService orderService, UserService userService, BookService bookService, InputService inputService, OutputService outputService) {
+    public UIServiceImpl(
+            OrderService orderService,
+            UserService userService,
+            BookService bookService,
+            OrderViewService orderViewService,
+            InputService inputService,
+            OutputService outputService
+    ) {
         this.orderService = orderService;
         this.userService = userService;
         this.bookService = bookService;
+        this.orderViewService = orderViewService;
         this.inputService = inputService;
         this.outputService = outputService;
     }
@@ -117,8 +126,11 @@ public class UIServiceImpl implements UIService {
             outputService.displayExceptionMessage(e.getMessage());
             return;
         }
-        orderService.createOrder(user.getId(), book.getId());
-        bookService.takeBook(book.getId());
+        try {
+            orderService.createOrder(user.getId(), book.getId());
+        } catch (RuntimeException e) {
+            outputService.displayExceptionMessage(e.getMessage());
+        }
     }
 
     private void closeOrder() {
@@ -133,23 +145,20 @@ public class UIServiceImpl implements UIService {
         if (order.isEmpty()) {
             return;
         }
-        orderService.closeOrder(order.get().getId());
-        bookService.returnBook(order.get().getBookId());
+        try {
+            orderService.closeOrder(order.get().getId());
+        } catch (RuntimeException e) {
+            outputService.displayExceptionMessage(e.getMessage());
+        }
     }
 
     private void reportOpenOrders(){
         List<Order> orders;
         try {
-            orders = orderService.getAllOrders();
-        } catch(NoOrdersOnUserException e) {
+            orders = orderViewService.getOpenOrdersReport();
+        } catch (NoOrdersOnUserException e) {
             outputService.displayExceptionMessage(e.getMessage());
             return;
-        }
-        for (Order order : orders) {
-            Book book = bookService.getById(order.getBookId());
-            order.setBookName(book.getBookName());
-            order.setBookAuthor(book.getAuthorName());
-            order.setUserName(userService.getUserById(order.getUserId()).getUserName());
         }
         outputService.displayList(orders);
     }

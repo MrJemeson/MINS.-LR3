@@ -9,5 +9,5 @@ public interface BookRepository {
     Optional<Book> findById(int bookId);
     Optional<List<Book>> findByName(String bookName);
     Optional<List<Book>> findByAuthor(String authorName);
-    void changeStatus(int bookId, Boolean isTaken);
+    void changeStatus(int bookId, boolean isTaken);
 }

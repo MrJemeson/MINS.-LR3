@@ -1,76 +1,38 @@
 package repository.impl;
 
-import com.opencsv.CSVReader;
-import com.opencsv.exceptions.CsvValidationException;
-import object.Book;
+import csv.CsvIO;
+import csv.CsvMapper;
+import csv.OrderCsvMapper;
 import object.Order;
 import repository.OrderRepository;
+import storage.FileStorage;
 
-import java.io.*;
-import java.util.*;
+import java.nio.file.Path;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
 
 public class CsvOrderRepositoryImpl implements OrderRepository {
-    private final String csvHeader = "\"ID\",\"UserId\",\"BookId\",\"ClosedStatus\"";
+    private final Path csvPath;
+    private final FileStorage storage;
+    private final CsvMapper<Order> mapper;
+
+    public CsvOrderRepositoryImpl(Path csvPath, FileStorage storage) {
+        this(csvPath, storage, new OrderCsvMapper());
+    }
+
+    public CsvOrderRepositoryImpl(Path csvPath, FileStorage storage, CsvMapper<Order> mapper) {
+        this.csvPath = csvPath;
+        this.storage = storage;
+        this.mapper = mapper;
+    }
 
     private List<Order> loadOrders(){
-        List<Order> orders = new ArrayList<>();
-
-        try (CSVReader reader = new CSVReader(new FileReader("data/orders.csv"))) {
-            String[] parts;
-            boolean firstLine = true;
-
-            while ((parts = reader.readNext()) != null) {
-                if (firstLine) {
-                    firstLine = false;
-                    continue;
-                }
-
-                try {
-                    orders.add(parseCsvLine(parts));
-                } catch (Exception e) {
-                    System.err.println("Error parsing line: " + String.join(",", parts));
-                    e.printStackTrace();
-                }
-            }
-        } catch (IOException | CsvValidationException e) {
-            e.printStackTrace();
-        }
-
-        return orders;
+        return CsvIO.readAll(csvPath, storage, mapper);
     }
 
     private void saveOrders(List<Order> orders) {
-        try {
-            File file = new File("data/orders.csv");
-            try (PrintWriter writer = new PrintWriter(new FileWriter(file, false))) {
-                writer.println(csvHeader);
-                for (Order order : orders) {
-                    writer.println(toCsvLine(order));
-                }
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to write CSV", e);
-        }
-    }
-
-    public Order parseCsvLine(String[] parts) {
-        if (parts.length !=4) {
-            throw new IllegalArgumentException("Invalid CSV format");
-        }
-        int id = Integer.parseInt(parts[0].trim());
-        int userId = Integer.parseInt(parts[1].trim());
-        int bookId  = Integer.parseInt(parts[2].trim());
-        boolean closedStatus = (parts[3].trim().equals("true"));
-        return new Order(id, bookId, userId, closedStatus);
-    }
-
-    public String toCsvLine(Order order) {
-        StringJoiner joiner = new StringJoiner(",");
-        joiner.add(Integer.toString(order.getId()))
-                .add(Integer.toString(order.getUserId()))
-                .add(Integer.toString(order.getBookId()))
-                .add((order.isClosedStatus())?("true"):("false"));
-        return joiner.toString();
+        CsvIO.writeAll(csvPath, storage, mapper, orders);
     }
 
     @Override
@@ -81,6 +43,12 @@ public class CsvOrderRepositoryImpl implements OrderRepository {
             return Optional.empty();
         }
         return Optional.of(orders);
+    }
+
+    @Override
+    public Optional<Order> findById(int orderId) {
+        List<Order> orders = loadOrders();
+        return orders.stream().filter(x -> x.getId() == orderId).findFirst();
     }
 
     @Override
@@ -100,7 +68,7 @@ public class CsvOrderRepositoryImpl implements OrderRepository {
     @Override
     public void closeOrder(int orderId) {
         List<Order> orders = loadOrders();
-        Order order = orders.stream().filter(x -> x.getId() == orderId).toList().getFirst();
+        Order order = orders.stream().filter(x -> x.getId() == orderId).findFirst().orElseThrow();
         order.setClosedStatus(true);
         saveOrders(orders);
     }

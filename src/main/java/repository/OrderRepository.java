@@ -7,6 +7,7 @@ import java.util.Optional;
 
 public interface OrderRepository {
     Optional<List<Order>> findByUserId(int userId);
+    Optional<Order> findById(int orderId);
     void addOrder(Order order);
     int findLastOrderId();
     void closeOrder(int orderId);

@@ -1,87 +1,48 @@
 package repository.impl;
 
-import com.opencsv.CSVReader;
-import com.opencsv.exceptions.CsvValidationException;
+import csv.BookCsvMapper;
+import csv.CsvIO;
+import csv.CsvMapper;
 import object.Book;
-import object.User;
 import repository.BookRepository;
+import storage.FileStorage;
 
-import java.io.*;
-import java.util.*;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 
 public class CsvBookRepositoryImpl implements BookRepository {
-    private final String csvHeader = "\"ID\",\"BookName\",\"AuthorName\",\"Taken\"";
+    private final Path csvPath;
+    private final FileStorage storage;
+    private final CsvMapper<Book> mapper;
+
+    public CsvBookRepositoryImpl(Path csvPath, FileStorage storage) {
+        this(csvPath, storage, new BookCsvMapper());
+    }
+
+    public CsvBookRepositoryImpl(Path csvPath, FileStorage storage, CsvMapper<Book> mapper) {
+        this.csvPath = csvPath;
+        this.storage = storage;
+        this.mapper = mapper;
+    }
 
     private List<Book> loadBooks(){
-        List<Book> books = new ArrayList<>();
-
-        try (CSVReader reader = new CSVReader(new FileReader("data/books.csv"))) {
-            String[] parts;
-            boolean firstLine = true;
-
-            while ((parts = reader.readNext()) != null) {
-                if (firstLine) {
-                    firstLine = false;
-                    continue;
-                }
-
-                try {
-                    books.add(parseCsvLine(parts));
-                } catch (Exception e) {
-                    System.err.println("Error parsing line: " + String.join(",", parts));
-                    e.printStackTrace();
-                }
-            }
-        } catch (IOException | CsvValidationException e) {
-            e.printStackTrace();
-        }
-
-        return books;
+        return CsvIO.readAll(csvPath, storage, mapper);
     }
 
     private void saveBooks(List<Book> books) {
-        try {
-            File file = new File("data/books.csv");
-            try (PrintWriter writer = new PrintWriter(new FileWriter(file, false))) {
-                writer.println(csvHeader);
-                for (Book book : books) {
-                    writer.println(toCsvLine(book));
-                }
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to write CSV", e);
-        }
-    }
-
-    public Book parseCsvLine(String[] parts) {
-        if (parts.length !=4) {
-            throw new IllegalArgumentException("Invalid CSV format");
-        }
-        int id = Integer.parseInt(parts[0].trim());
-        String bookName = parts[1].trim();
-        String authorName = parts[2].trim();
-        boolean takenStatus = (parts[3].trim().equals("true"));
-        return new Book(id, bookName, authorName, takenStatus);
-    }
-
-    public String toCsvLine(Book book) {
-        StringJoiner joiner = new StringJoiner(",");
-        joiner.add(Integer.toString(book.getId()))
-                .add(book.getBookName())
-                .add(book.getAuthorName())
-                .add((book.isTakenStatus())?("true"):("false"));
-        return joiner.toString();
+        CsvIO.writeAll(csvPath, storage, mapper, books);
     }
     @Override
     public Optional<Book> findById(int bookId) {
         List<Book> books = loadBooks();
-        Book book;
         try {
-            book = books.stream().filter(x -> x.getId() == bookId).toList().getFirst();
+            Book book = books.stream().filter(x -> x.getId() == bookId).findFirst().orElseThrow();
+            return Optional.of(book);
         } catch (NoSuchElementException e) {
             return Optional.empty();
         }
-        return Optional.of(book);
     }
 
     @Override
@@ -105,9 +66,9 @@ public class CsvBookRepositoryImpl implements BookRepository {
     }
 
     @Override
-    public void changeStatus(int bookId, Boolean isTaken) {
+    public void changeStatus(int bookId, boolean isTaken) {
         List<Book> books = loadBooks();
-        Book book = books.stream().filter(x -> x.getId() == bookId).toList().getFirst();
+        Book book = books.stream().filter(x -> x.getId() == bookId).findFirst().orElseThrow();
         book.setTakenStatus(isTaken);
         saveBooks(books);
     }
