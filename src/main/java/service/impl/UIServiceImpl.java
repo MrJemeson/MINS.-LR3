@@ -7,6 +7,7 @@ import object.Book;
 import object.Order;
 import object.User;
 import service.*;
+import statistics.LibraryStatisticsGodObject;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,6 +19,7 @@ public class UIServiceImpl implements UIService {
     private final OrderViewService orderViewService;
     private final InputService inputService;
     private final OutputService outputService;
+    private final LibraryStatisticsGodObject libraryStatistics;
 
     public UIServiceImpl(
             OrderService orderService,
@@ -25,7 +27,8 @@ public class UIServiceImpl implements UIService {
             BookService bookService,
             OrderViewService orderViewService,
             InputService inputService,
-            OutputService outputService
+            OutputService outputService,
+            LibraryStatisticsGodObject libraryStatistics
     ) {
         this.orderService = orderService;
         this.userService = userService;
@@ -33,6 +36,7 @@ public class UIServiceImpl implements UIService {
         this.orderViewService = orderViewService;
         this.inputService = inputService;
         this.outputService = outputService;
+        this.libraryStatistics = libraryStatistics;
     }
 
     @Override
@@ -53,6 +57,10 @@ public class UIServiceImpl implements UIService {
                 }
                 case 3: {
                     reportOpenOrders();
+                    break;
+                }
+                case 4: {
+                    libraryStatistics.printFullReport();
                     break;
                 }
             }

@@ -5,6 +5,7 @@ import repository.factory.CsvRepositoryFactory;
 import repository.factory.RepositoryFactory;
 import service.*;
 import service.impl.*;
+import statistics.LibraryStatisticsGodObject;
 
 import java.nio.file.Path;
 import storage.FileStorage;
@@ -29,7 +30,8 @@ public class App {
         OrderService orderService = new OrderServiceImpl(orderRepository, uowFactory);
         BookService bookService = new BookServiceImpl(bookRepository);
         OrderViewService orderViewService = new OrderViewServiceImpl(orderService, userService, bookService);
-        UIService uiService = new UIServiceImpl(orderService, userService, bookService, orderViewService, inputService, outputService);
+        LibraryStatisticsGodObject libraryStatistics = new LibraryStatisticsGodObject();
+        UIService uiService = new UIServiceImpl(orderService, userService, bookService, orderViewService, inputService, outputService, libraryStatistics);
         uiService.mainMenu();
     }
 }

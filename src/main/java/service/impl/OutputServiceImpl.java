@@ -7,7 +7,7 @@ import java.util.List;
 public class OutputServiceImpl implements OutputService {
     @Override
     public void displayMainMenu() {
-        System.out.println("############# Main Menu #############\n1) Create order\n2) Close order\n3) All open orders");
+        System.out.println("############# Main Menu #############\n1) Create order\n2) Close order\n3) All open orders\n4) Statistics");
         System.out.print("Choose Main Menu option: ");
     }
 
